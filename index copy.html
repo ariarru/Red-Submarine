@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Under the Sea - CG</title>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <h1>Under the sea</h1>
+        <canvas id="mainCanva"></canvas>
+
+        <script id="vertex-shader" type="not-javascript">
+            attribute vec4 a_position;
+            attribute vec3 a_normal;
+            attribute vec3 a_tangent;
+            attribute vec2 a_texcoord;
+            attribute vec4 a_color;
+          
+            uniform mat4 u_projection;
+            uniform mat4 u_view;
+            uniform mat4 u_world;
+            uniform vec3 u_viewWorldPosition;  //posizione della camera nel mondo
+            uniform mat4 u_worldInverseTraspose;
+
+            //luce del mondo
+            uniform vec3 u_lightWorldPosition;
+            uniform float u_lightWorldIntensity;
+
+            //luce sottomarino
+            uniform vec3 u_lightSubPosition;
+            uniform float u_lightSubIntensity;
+          
+            varying vec3 v_normal;
+            varying vec3 v_tangent;
+            varying vec3 v_surfaceToView;
+            varying vec2 v_texcoord;
+            varying vec4 v_color;
+            varying vec3 v_worldPosition;   // posizione nel mondo
+            varying vec3 v_worldNormal;      //normali orientate nel mondo
+            varying vec3 v_surfaceToLightWorld;   //come risponde la superficie alla luce
+            varying vec3 v_surfaceToLightSub;
+            varying vec3 v_lightWorldPos;
+            varying vec3 v_lightSubPos;
+
+          
+            void main() {
+                //trasformo la posizione del vertice nel mondo
+                vec4 worldPosition = u_world * a_position;
+                gl_Position = u_projection * u_view * worldPosition;
+                
+
+                //calcolo la normale nel mondo
+                mat3 normalMat = mat3(u_world);
+                v_normal = normalize(normalMat * a_normal);
+                v_tangent = normalize(normalMat * a_tangent);
+            
+                v_texcoord = a_texcoord;
+                v_color = a_color;
+
+                // send the view position to the fragment shader
+                v_worldPosition = (u_world * a_position).xyz;
+            
+                // orient the normals and pass to the fragment shader
+                v_worldNormal = mat3(u_worldInverseTraspose) * a_normal;
+
+                // compute the world position of the surface
+                vec3 surfaceWorldPosition = (u_world * a_position).xyz;
+                
+                // calcolo le componenti della luce
+                v_surfaceToLightWorld = u_lightWorldPosition - surfaceWorldPosition;
+                v_lightWorldPos = u_lightWorldPosition;
+                v_surfaceToLightSub = u_lightSubPosition - surfaceWorldPosition;
+                v_lightSubPos = u_lightSubPosition;
+                // vettore superficie-camera
+                v_surfaceToView = u_viewWorldPosition - worldPosition.xyz;
+
+            }
+        </script>
+
+        <script id="fragment-shader" type="not-javascript">
+            precision highp float;
+
+            varying vec3 v_normal;
+            varying vec3 v_tangent;
+            varying vec3 v_surfaceToLightWorld;
+            varying vec3 v_surfaceToLightSub;
+            varying vec3 v_surfaceToView;
+            varying vec2 v_texcoord;
+            varying vec4 v_color;
+            
+            // Passed in from the vertex shader.
+            varying vec3 v_worldPosition;
+            varying vec3 v_worldNormal;
+            varying vec3 v_lightWorldPos;
+            varying vec3 v_lightSubPos;
+            
+            uniform samplerCube u_texture;   // Texture di riflesso del mondo
+            uniform sampler2D diffuseMap;    // Mappa diffuse
+            uniform sampler2D specularMap;   // Mappa specular
+            uniform sampler2D normalMap;     // Mappa normali
+            
+            uniform vec3 diffuse;            // Colore del materiale che non è colpito da luce
+            uniform vec3 ambient;            // Colore dell'ambiente
+            uniform vec3 emissive;           // Colore del materiale indipendentemente dalla luce, usato per le cose che brillano
+            uniform vec3 specular;           // Colore della specularità
+            uniform float shininess;         // Coefficiente di specularità
+            uniform float opacity;           // Opacità del materiale
+            
+            uniform vec3 u_lightColor1;      // Colore della luce 1
+            uniform vec3 u_lightColor2;      // Colore della luce 2
+            uniform float intensity;         // Intensità della luce
+            uniform vec3 u_ambientK;        // Colore luce ambiente
+            uniform float u_ambientI;       // Intensità luce ambiente
+            uniform vec3 u_specular_ambientIa;
+            
+            // Posizione della camera nel mondo
+            uniform vec3 u_worldCameraPosition;
+            
+            void main() {
+                vec3 normal = normalize(v_normal) * (float(gl_FrontFacing) * 2.0 - 1.0);
+                vec3 tangent = normalize(v_tangent) * (float(gl_FrontFacing) * 2.0 - 1.0);
+                vec3 bitangent = normalize(cross(normal, tangent));
+            
+                mat3 tbn = mat3(tangent, bitangent, normal);
+                normal = texture2D(normalMap, v_texcoord).rgb * 2.0 - 1.0;
+                normal = normalize(tbn * normal);
+            
+                // Luce riflessa 
+                vec3 surfaceToLightDirectionWolrd = normalize(v_surfaceToLightWorld);
+                vec3 surfaceToLightDirectionSub = normalize(v_surfaceToLightSub);
+                vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+            
+                vec3 halfVectorWorld = normalize(surfaceToLightDirectionWolrd + surfaceToViewDirection);
+                vec3 halfVectorSub = normalize(surfaceToLightDirectionSub + surfaceToViewDirection);
+            
+                float specularLightWorld = clamp(dot(normal, halfVectorWorld), 0.0, 1.0);
+                float specularLightSub = clamp(dot(normal, halfVectorSub), 0.0, 1.0);
+            
+                vec4 diffuseMapColor = texture2D(diffuseMap, v_texcoord);
+                vec3 effectiveDiffuse = diffuse * diffuseMapColor.rgb * v_color.rgb;
+                float effectiveOpacity = opacity * diffuseMapColor.a * v_color.a;
+            
+                vec4 specularMapColor = texture2D(specularMap, v_texcoord);
+                vec3 effectiveSpecular = specular * specularMapColor.rgb;
+            
+                float distanceWorld = max(dot(normal, normalize(v_lightWorldPos - u_worldCameraPosition)), 0.0);
+                float distanceSub = max(dot(normal, normalize(v_lightSubPos - u_worldCameraPosition)), 0.0);
+            
+                float attenuationWorld = 1.0 / (distanceWorld * distanceWorld);
+                float attenuationSub = 1.0 / (distanceSub * distanceSub);
+            
+                // Luce del mondo
+                float lightWorld = max(dot(normal, surfaceToLightDirectionWolrd), 0.0);
+                vec3 reflectedLightWorld = reflect(-surfaceToLightDirectionWolrd, normal);
+                float specularWorld = pow(max(dot(reflectedLightWorld, surfaceToViewDirection), 0.0), shininess);
+                vec3 lightWorldContribution = u_lightColor1 * lightWorld * attenuationWorld * effectiveDiffuse +
+                                              u_lightColor1 * effectiveSpecular * specularWorld * halfVectorWorld;
+            
+                // Luce del sottomarino
+                float lightSub = max(dot(normal, surfaceToLightDirectionSub), 0.0);
+                vec3 reflectedLightSub = reflect(-surfaceToLightDirectionSub, normal);
+                float specularSub = pow(max(dot(reflectedLightSub, surfaceToViewDirection), 0.0), shininess);
+                vec3 lightSubContribution = u_lightColor2 * lightSub * attenuationSub * effectiveDiffuse +
+                                            u_lightColor2 * specularSub * effectiveSpecular * halfVectorSub;
+            
+                // Calcola il colore finale considerando l'ambiente, la luce, la specularità e la texture
+                vec3 ambientColor = ambient * u_ambientK * u_ambientI;
+                vec3 finalColor = ambientColor +
+                                  lightWorldContribution +
+                                  lightSubContribution;
+            
+                gl_FragColor = vec4(finalColor, effectiveOpacity);
+            }
+            
+        </script>
+
+        <!-- vertex e fragment shader per la gestione della skybox-->
+        <script id="skybox-vertex-shader" type="not-javascript">
+            attribute vec4 a_position;
+            varying vec4 v_position;
+            void main(){
+                v_position = a_position;
+                gl_Position = a_position;
+                gl_Position.z = 1.0;
+            }
+        </script>
+        <script id="skybox-fragment-shader" type="not-javascript">
+            precision mediump float;
+
+            uniform samplerCube u_skybox;
+            uniform mat4 u_viewDirectionProjectionInverse;
+
+            varying vec4 v_position;
+            void main() {
+                vec4 t = u_viewDirectionProjectionInverse * v_position;
+                gl_FragColor = textureCube(u_skybox, normalize(t.xyz / t.w));
+            }
+        </script>
+
+        <script type="text/javascript" src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+        <script type="text/javascript" src="https://webglfundamentals.org/webgl/resources/m4.js"></script>
+       <script type="text/javascript" src="./handleOBJ.js"></script>
+        <script type="text/javascript" src="./handleMT.js"></script>
+        <script type="text/javascript" src="./myutils.js"></script>
+        <script type="text/javascript" src="./code-webgl.js"></script>
+
+        <div id="btnContainer">
+            <!-- here there will be buttons -->
+            <!-- se riesci a farlo vedere tipo game boy è top-->
+            <div class="center vertical">
+                <button id="up" class="btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="3em" height="3em" viewBox="0 0 24 24">
+                        <path fill="black" d="M10.586 3L4 9.586a2 2 0 0 0-.434 2.18l.068.145A2 2 0 0 0 5.414 13H8v7a2 2 0 0 0 2 2h4l.15-.005A2 2 0 0 0 16 20l-.001-7h2.587A2 2 0 0 0 20 9.586L13.414 3a2 2 0 0 0-2.828 0" />
+                    </svg>
+                </button>
+            </div>
+            <div class="center horizontal">
+                <button id="left" class="btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="3em" height="3em" viewBox="0 0 24 24">
+                        <path fill="black" d="M9.586 4L3 10.586a2 2 0 0 0 0 2.828L9.586 20a2 2 0 0 0 2.18.434l.145-.068A2 2 0 0 0 13 18.586V16h7a2 2 0 0 0 2-2v-4l-.005-.15A2 2 0 0 0 20 8l-7-.001V5.414A2 2 0 0 0 9.586 4" />
+                    </svg>
+                </button>
+                <button id="right" class="btn" >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="3em" height="3em" viewBox="0 0 24 24">
+                        <path fill="black" d="M12.089 3.634A2 2 0 0 0 11 5.414L10.999 8H4a2 2 0 0 0-2 2v4l.005.15A2 2 0 0 0 4 16l6.999-.001l.001 2.587A2 2 0 0 0 14.414 20L21 13.414a2 2 0 0 0 0-2.828L14.414 4a2 2 0 0 0-2.18-.434z" />
+                    </svg>
+                </button>
+            </div>
+            <div class="center vertical">
+                <button id="down" class="btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="3em" height="3em" viewBox="0 0 24 24">
+                        <path fill="black" d="m10 2l-.15.005A2 2 0 0 0 8 4v6.999L5.414 11A2 2 0 0 0 4 14.414L10.586 21a2 2 0 0 0 2.828 0L20 14.414a2 2 0 0 0 .434-2.18l-.068-.145A2 2 0 0 0 18.586 11L16 10.999V4a2 2 0 0 0-2-2z" />
+                    </svg>
+                </button>
+            </div>
+            
+            
+        </div>
+        
+         </body>
+</html>

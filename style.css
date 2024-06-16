@@ -1,0 +1,39 @@
+body{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #001f54;
+    color:white;
+}
+
+#mainCanva{
+    width: 90vw;
+    height: auto;
+    margin: 2rem 0px;
+   /* background-color: #1c3766;*/
+}
+
+.center{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.vertical{
+    flex-direction: column;
+}
+.horizontal{
+    flex-direction: row;
+}
+
+.btn{
+    width: 5em;
+    height: 5em;
+    border-radius: 5px;
+    background-color: #c7c3c0;
+    box-shadow: rgba(0, 0, 0, 0.377) 10px 10px 8px, #ffffff 1.5px 1.5px 2px 0px inset, #c7c3c0 -3.2px -3.2px 8px 0px inset;
+    cursor: pointer;
+    margin: 0.2em 0.5em;
+    
+}
