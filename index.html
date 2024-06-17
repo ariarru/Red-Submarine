@@ -66,6 +66,7 @@
             varying vec3 v_surfaceToView;
             varying vec2 v_texcoord;
             varying vec4 v_color;
+            varying vec3 v_lightWorldPos;
 
             uniform vec3 diffuse;
             uniform sampler2D diffuseMap;
@@ -76,7 +77,7 @@
             uniform float shininess;
             uniform sampler2D normalMap;
             uniform float opacity;
-            uniform vec3 u_lightDirection;
+            uniform vec3 u_lightWorldDirection;
             uniform vec3 u_ambientLight;
 
             void main () {
@@ -89,10 +90,10 @@
             normal = normalize(tbn * normal);
 
             vec3 surfaceToViewDirection = normalize(v_surfaceToView);
-            vec3 halfVector = normalize(u_lightDirection + surfaceToViewDirection);
+            vec3 halfWorldVector = normalize(u_lightWorldDirection + surfaceToViewDirection);
 
-            float fakeLight = dot(u_lightDirection, normal) * .5 + .5;
-            float specularLight = clamp(dot(normal, halfVector), 0.0, 1.0);
+            float worldLight = dot(u_lightWorldDirection, normal) * .5 + .5;
+            float specularLight = clamp(dot(normal, halfWorldVector), 0.0, 1.0);
             vec4 specularMapColor = texture2D(specularMap, v_texcoord);
             vec3 effectiveSpecular = specular * specularMapColor.rgb;
 
@@ -103,7 +104,7 @@
             gl_FragColor = vec4(
                 emissive +
                 ambient * u_ambientLight +
-                effectiveDiffuse * fakeLight +
+                effectiveDiffuse * worldLight +
                 effectiveSpecular * pow(specularLight, shininess),
                 effectiveOpacity);
             }

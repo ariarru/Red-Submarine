@@ -266,7 +266,8 @@ async function main() {
       opacity:0.5,
      // ambient: [0,0,255],
       u_lightWorldPosition: [0, 20, -3],
-      u_lightWorldIntensity: 0.2,
+      u_lightWorldIntensity: 0.1,
+      u_lightWorldDirection: [4.5, 2.5, -3],
       u_worldInverseTraspose: u_worldInverseTraspose,
     };
     gl.useProgram(programInfo.program);
