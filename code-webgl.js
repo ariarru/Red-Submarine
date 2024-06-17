@@ -257,12 +257,17 @@ async function main() {
 
     
     // ---- coordinate luce e camera ------
+    let u_world= m4.identity();
+    const u_worldInverseTraspose = m4.transpose(m4.inverse(u_world));
     const sharedUniforms = {
       u_view: view,
       u_projection: projection,
       u_viewWorldPosition: cameraPositionVector,
       opacity:0.5,
-      ambient: [0,0,255],
+     // ambient: [0,0,255],
+      u_lightWorldPosition: [0, 20, -3],
+      u_lightWorldIntensity: 0.2,
+      u_worldInverseTraspose: u_worldInverseTraspose,
     };
     gl.useProgram(programInfo.program);
     // calls gl.uniform
@@ -272,7 +277,6 @@ async function main() {
 
     // ------ Draw the objects --------
     //u_world sono le coordinate dell'oggetto nel mondo
-    let u_world= m4.identity();
 
     var lastUsedProgramInfo = null;
     var lastUsedBufferInfo = null;
