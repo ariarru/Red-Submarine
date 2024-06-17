@@ -155,15 +155,15 @@ async function main() {
   for(const i of indexes){
     var href ='./res/rocks/scoglio-'+i.toString()+'.obj';
     const rock = await generateBuffer(href.toString());
-    var rockTrasl = [getRandomInt(-20, 20), getRandomInt(-20, 20), getRandomInt(-40, -5)];
+    var rockTrasl = [getRandomNumber(-20, 20), getRandomNumber(-20, 2), getRandomNumber(-40, -5)];
     elementsToDraw.push({
       programInfo: programInfo,
       parts: rock.parts,
       obj: rock.obj,
       uniforms: rocksUniform,
       translation: rockTrasl,
-      xRotation: 0,//degToRad(getRandomInt(-20, 20)),
-      yRotation: 0,//degToRad(getRandomInt(-20, 20)),
+      xRotation: degToRad(getRandomNumber(-20, 20)),
+      yRotation: degToRad(getRandomNumber(-20, 20)),
       zRotation: 0,
     }); 
   }
@@ -264,10 +264,9 @@ async function main() {
       u_projection: projection,
       u_viewWorldPosition: cameraPositionVector,
       opacity:0.5,
-     // ambient: [0,0,255],
       u_lightWorldPosition: [0, 20, -3],
       u_lightWorldIntensity: 0.1,
-      u_lightWorldDirection: [4.5, 2.5, -3],
+      u_lightWorldDirection: [3, 3.5, -2.5],
       u_worldInverseTraspose: u_worldInverseTraspose,
     };
     gl.useProgram(programInfo.program);
@@ -278,7 +277,6 @@ async function main() {
 
     // ------ Draw the objects --------
     //u_world sono le coordinate dell'oggetto nel mondo
-
     var lastUsedProgramInfo = null;
     var lastUsedBufferInfo = null;
  

@@ -3,10 +3,10 @@ function degToRad(deg) {
   return deg * Math.PI / 180;
 }
 
-function getRandomInt(min, max) {
+function getRandomNumber(min, max) {
   const minCeiled = Math.ceil(min);
   const maxFloored = Math.floor(max);
-  return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); // The maximum is exclusive and the minimum is inclusive
+  return Math.random() * (maxFloored - minCeiled) + minCeiled; // The maximum is exclusive and the minimum is inclusive
 }
 
 async function generateBuffer(url){
