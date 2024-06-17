@@ -88,7 +88,6 @@
             uniform vec3 u_lightDirection;
             uniform vec3 u_ambientLight;
             uniform vec3 u_worldCameraPosition;     // Posizione della camera nel mondo
-            uniform samplerCube u_texture;          // texture skybox
             
             void main () {
                 vec3 normal = normalize(v_normal) * ( float( gl_FrontFacing ) * 2.0 - 1.0 );
@@ -103,9 +102,11 @@
                 vec3 direction = reflect(eyeToSurfaceDir, worldNormal);
             
                 mat3 tbn = mat3(tangent, bitangent, normal);
-                normal = texture2D(normalMap, v_texcoord).rgb * 2. - 1.;
+                normal = texture2D(normalMap, v_texcoord).rgb * 2.0 - 1.0;
                 normal = normalize(tbn * normal);
             
+                // Luce riflessa
+                vec3 surfaceToLightDirectionWolrd = normalize(v_surfaceToLightWorld);
                 vec3 surfaceToViewDirection = normalize(v_surfaceToView);
                 vec3 reflectedLightWorld = reflect(-v_surfaceToLightWorld, normal);
                 vec3 halfVector = normalize(u_lightDirection + surfaceToViewDirection);
@@ -122,17 +123,14 @@
                 vec3 effectiveDiffuse = diffuse * attenuationWorld * diffuseMapColor.rgb * v_color.rgb;
                 float effectiveOpacity = opacity * diffuseMapColor.a * v_color.a;
             
-                vec4 finalColor = vec4(
+                gl_FragColor = vec4(
                     emissive +
                     ambient * u_ambientLight +
-                    effectiveDiffuse * fakeLight +
+                    attenuationWorld * effectiveDiffuse * fakeLight +
                     effectiveSpecular * pow(specularLight, shininess),
                     effectiveOpacity
                 );
             
-                // Mix the environment map reflection with the final color
-                vec4 reflectionColor = textureCube(u_texture, direction);
-                gl_FragColor = mix(finalColor, reflectionColor, 0.5);
             }
             
             

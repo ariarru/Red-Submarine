@@ -261,6 +261,8 @@ async function main() {
       u_view: view,
       u_projection: projection,
       u_viewWorldPosition: cameraPositionVector,
+      opacity:0.5,
+      ambient: [0,0,255],
     };
     gl.useProgram(programInfo.program);
     // calls gl.uniform
@@ -336,6 +338,8 @@ async function main() {
 
   
     gl.depthFunc(gl.LEQUAL);
+
+
     //cambio il program per lavorare sulla skybox
     gl.useProgram(skyboxProgramInfo.program);
     //assegno il buffer
