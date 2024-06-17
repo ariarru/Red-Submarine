@@ -147,19 +147,29 @@ async function main() {
     animate: true,
   });  
 
+  /*-- Dichiaro il vettore luce del sottomarino -- */
+
+
   /* -- Dichiaro gli scogli-- */
   const  indexes = [1, 2, 3, 4 , 5, 6, 13, 16];
   var rocksUniform = {
     u_matrix: m4.identity(),
   };
-  for(const i of indexes){
+
+  const rocksObjs = [];
+  for(let i=0; i<(indexes.length-1); i++){
     var href ='./res/rocks/scoglio-'+i.toString()+'.obj';
     const rock = await generateBuffer(href.toString());
-    var rockTrasl = [getRandomNumber(-20, 20), getRandomNumber(-20, 2), getRandomNumber(-40, -5)];
+    rocksObjs.push(rock);
+  }
+
+  async function addRock(y, rockNumber){
+    var rockObject=rocksObjs[rockNumber];
+    var rockTrasl = [getRandomNumber(-40, 40), y, getRandomNumber(-80, 40)];
     elementsToDraw.push({
       programInfo: programInfo,
-      parts: rock.parts,
-      obj: rock.obj,
+      parts: rockObject.parts,
+      obj: rockObject.obj,
       uniforms: rocksUniform,
       translation: rockTrasl,
       xRotation: degToRad(getRandomNumber(-20, 20)),
@@ -167,6 +177,28 @@ async function main() {
       zRotation: 0,
     }); 
   }
+
+  //definisco in base alla la densità in base a y e poi genero randomicamente uno scoglio
+  for(let y=0; y>-120; y-=3){
+    let density = Math.abs( 0.5* y - 2.5 ); 
+    console.log("for" + y.toString() + "i've got "+ density.toString()+ "density");
+    for(let n=0; n<density; n++){
+      let randomRockNumber = Math.floor(Math.random()*rocksObjs.length);
+      addRock(y, randomRockNumber);
+    }
+    
+  }
+  
+  
+  //to select random rock fai indexes[i] con i = Math.random()* indexes.lenght;
+  
+
+  
+
+
+
+
+  
 
 
 
@@ -251,23 +283,23 @@ async function main() {
     var viewDirectionProjectionInverseMatrix =
       m4.inverse(viewDirectionProjectionMatrix);
 
-    /*-- Gestione luci-- */
-    //luce sottomarino
-
-
+    /*-- Informazioni condivise -- */
     
-    // ---- coordinate luce e camera ------
     let u_world= m4.identity();
     const u_worldInverseTraspose = m4.transpose(m4.inverse(u_world));
     const sharedUniforms = {
       u_view: view,
       u_projection: projection,
       u_viewWorldPosition: cameraPositionVector,
-      opacity:0.5,
+      opacity:0.4,
       u_lightWorldPosition: [0, 20, -3],
-      u_lightWorldIntensity: 0.1,
-      u_lightWorldDirection: [3, 3.5, -2.5],
+      u_lightWorldIntensity: 0.8,  //quando vado in profondità forse lo devo diminuire di 0.001
+      u_lightWorldDirection: [3, 3, -2.5],
       u_worldInverseTraspose: u_worldInverseTraspose,
+      //luce sottomarino
+      u_lightSubPosition: subTransl,
+      u_lightSubIntensity: 0.3,
+      u_lightSubDirection: [0 ,1,-1],
     };
     gl.useProgram(programInfo.program);
     // calls gl.uniform

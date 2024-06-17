@@ -9,6 +9,13 @@ function getRandomNumber(min, max) {
   return Math.random() * (maxFloored - minCeiled) + minCeiled; // The maximum is exclusive and the minimum is inclusive
 }
 
+function generateCoordinatesRocks(){ //forse prende in input la densità?
+  const coord = [];
+  coord[0]= getRandomNumber(-20, 20); //definisco la x
+  coord[1]= getRandomNumber(-20, 0);  //definisco la y
+  coord[2]= getRandomNumber(-20, 20);  //definisco la z
+}
+
 async function generateBuffer(url){
   // Get A WebGL context
   const canvas = document.getElementById("mainCanva");
