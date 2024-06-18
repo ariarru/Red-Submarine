@@ -242,8 +242,12 @@ async function main() {
     }
   });
 
+
+  let then = 0;
   function render(time) {
     time *= 0.001;  // convert to seconds
+    const deltaTime = time-then;
+    then = time;
 
     webglUtils.resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -253,9 +257,14 @@ async function main() {
 
 
     /* Gestione camera */
+    const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
+    const view_up = [0, 1, 0];
+    const camera = m4.translate(elementsToDraw[0].u_world_local, cameraPosition[0], cameraPosition[1], cameraPosition[2]);//computeMatrix(elementsToDraw[0].u_world_local, m4.addVectors(subTransl, [0, 8, 10]), 0, degToRad(90), 0);//m4.lookAt(cameraPositionVector, cameraTarget, view_up);
+    m4.yRotation(degToRad(0), camera);
+
     if(foward){
-      elementsToDraw[0].u_world_local = m4.translate(elementsToDraw[0].u_world_local, 0, 0, 200);
-      console.log(elementsToDraw[0].u_world_local);
+      subTransl[2] -= 0.5;
+      m4.translate(camera, 0, 0, -0.5, camera);
     }
     if(rotateLeft){
       cameraPosition[0] +=degToRad(1);
@@ -268,10 +277,7 @@ async function main() {
       elementsToDraw[1].yRotation = elementsToDraw[0].yRotation;
     }
 
-    const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
-    const view_up = [0, 1, 0];
-    const camera = m4.translate(elementsToDraw[0].u_world_local, 0, 0, 8);//computeMatrix(elementsToDraw[0].u_world_local, m4.addVectors(subTransl, [0, 8, 10]), 0, degToRad(90), 0);//m4.lookAt(cameraPositionVector, cameraTarget, view_up);
-    m4.yRotation(degToRad(0), camera);
+    
 
     //if key pressed moltiplica matrice camera per posizione sottomarino tipo
 
