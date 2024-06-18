@@ -33,6 +33,10 @@ function computeMatrix(viewProjectionMatrix, translation, xRotation, yRotation, 
   return matrix;
 }
 
+//assegno solo determinati valori da una matrice all'altra per definire la traslazione senza incidere sulla rotazione dell'elica
+function adaptPropellers(src, dst){
+  
+}
 
 //linear interpolation
 // a - valore inizio / b-valore fine / t - interpolation factor

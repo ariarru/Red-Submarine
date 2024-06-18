@@ -98,62 +98,33 @@ async function main() {
   gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 
 
-
-  /*--- Definisco le variabili dei tasti per muoversi---*/
-
-  var keyFoward = false;    //tasto per muoversi avanti W
-  var keyUp = false;        //tasto per muoversi in su E
-  var keyDown = false;      //tasto per muoversi in giù S
-  var keyRight = false;     //tasto per virare a destra D
-  var keyLeft = false;      //tasto per virare a sinistra A
-
-  // definisco eventi
-  //window.addEventListener();
-
-
   
   /* - array di tutti gli elementi da disegnare - */
   var elementsToDraw =[];
 
-  /*
-  
-     object.uniforms.u_matrix = computeMatrix(
-        m4.identity(),
-        object.translation,
-        object.animate ? object.xRotation * time : object.xRotation,
-        object.yRotation,
-        object.zRotation);
-  
-
-  */
-
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
-  var subTransl = [0, 0, 0];
+  var subTransl = [0, 0, -10];
   var submarineUniforms = {
     u_matrix: m4.identity(),
   };
   /* aggiungo all'array il sottomarino*/
   elementsToDraw.push({
-    programInfo: programInfo,
     parts: subBody.parts,
     obj: subBody.obj,
     uniforms: submarineUniforms,
-    u_world_local: m4.identity(),
   });  
 
-  //m4.yRotate(submarineUniforms.u_matrix, degToRad(-90.0), submarineUniforms.u_matrix);
   /* -- Dichiaro le eliche -- */
   const subPropellers = await generateBuffer('./res/sub-eliche.obj');
   var propUniform ={
-    u_matrix: m4.multiply(submarineUniforms, m4.identity()),
+    u_matrix: m4.copy(submarineUniforms.u_matrix),
   }
   /* aggiungo all'array le eliche*/
   elementsToDraw.push({
-    programInfo: programInfo,
     parts: subPropellers.parts,
     obj: subPropellers.obj,
-    uniforms: submarineUniforms,
+    uniforms: propUniform,
     animate: true,
   });  
 
@@ -181,7 +152,6 @@ async function main() {
       u_matrix : rockMatrix,
     }
     elementsToDraw.push({
-      programInfo: programInfo,
       parts: rockObject.parts,
       obj: rockObject.obj,
       uniforms: uniform,
@@ -199,16 +169,11 @@ async function main() {
   }
   
 
-  /* Gestione della camera */
-  const cameraTarget = [0, 0, 0];
-  const cameraPosition= [0, 0, 8];
-  
-
-
-  /* -- Gestione del cursore -- */
+  /* -- Gestione della navigazione -- */
   let rotateLeft= false;
   let rotateRight = false;
   let foward = false;
+  let back = false;
   //test con tasti
   window.addEventListener("keydown", (event)=>{
    //trasla sottomarino e eliche
@@ -218,7 +183,9 @@ async function main() {
           foward = true;
                 break;
         //giù
-        case 83:break;
+        case 83:
+          back=true;
+          break;
         //su
         case 69: break;
         //ruota dx
@@ -238,6 +205,10 @@ async function main() {
       case 87: 
         foward = false;
         break;
+      //giù
+      case 83:
+        back=false;
+        break;
       case 68:
         rotateRight = false;
         break;
@@ -248,8 +219,14 @@ async function main() {
     }
   });
 
+
+
+  /* Gestione della camera */
+  const cameraTarget = [0, 0, 0];
+  const cameraPosition= [0, 2, 8];
   const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
 
+  
 
   let then = 0;
   function render(time) {
@@ -265,24 +242,31 @@ async function main() {
 
 
     /* Gestione camera */
-    const camera = m4.translate(submarineUniforms.u_matrix, cameraPosition[0], cameraPosition[1], cameraPosition[2]);
-    //m4.yRotate(submarineUniforms.u_matrix,degToRad(90), submarineUniforms.u_matrix);
-
-    if(foward){
-      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0,0,0.5, elementsToDraw[0].uniforms.u_matrix)//sistema scatto
-    }
-    if(rotateLeft){
-      elementsToDraw[0].yRotation += degToRad(0.2);
-      elementsToDraw[1].yRotation = elementsToDraw[0].yRotation;
-     } 
-    if(rotateRight){
-      elementsToDraw[0].yRotation -= degToRad(0.2);
-      elementsToDraw[1].yRotation = elementsToDraw[0].yRotation;
-    }
-
+    const camera = m4.yRotate(submarineUniforms.u_matrix, degToRad(90));
+    m4.translate(camera, cameraPosition[0], cameraPosition[1], cameraPosition[2], camera);
     
 
-    //if key pressed maoltiplica matrice camera per posizione sottomarino tipo
+  //if key pressed maoltiplica matrice camera per posizione sottomarino tipo
+    if(foward){
+      m4.translate(elementsToDraw[0].uniforms.u_matrix, -0.5,0,0, elementsToDraw[0].uniforms.u_matrix);//sistema scatto
+      m4.translate(elementsToDraw[1].uniforms.u_matrix, -0.5,0,0, elementsToDraw[1].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+    }
+    if(rotateLeft){
+      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+     } 
+    if(rotateRight){
+      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+    }
+    if(back){
+      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0, 0, -0.5, elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+    }
+    
+
+    
 
     
     //campo della vista nell'asse y in radianti
@@ -325,7 +309,8 @@ async function main() {
     // calls gl.uniform
     webglUtils.setUniforms(programInfo, sharedUniforms);
 
-  
+
+    
 
     // ------ Draw the objects --------
     //u_world sono le coordinate dell'oggetto nel mondo
@@ -333,7 +318,6 @@ async function main() {
     var lastUsedBufferInfo = null;
  
     elementsToDraw.forEach(function(object) {
-      var programInfo = object.programInfo;
       var objBufferInfo = object.bufferInfo;
       var bindBuffers = false;
 
@@ -350,8 +334,8 @@ async function main() {
       // definisco la matrice
       // gestisco animazioni
       if(object.animate){
-        let temp=object.uniforms.u_matrix;
-        m4.xRotate(temp, degToRad(200*deltaTime),temp);
+        let temp = object.uniforms.u_matrix;
+        m4.xRotate(temp, degToRad(200 * deltaTime),temp);
         object.uniforms.u_matrix = temp;
       }
       
