@@ -117,7 +117,7 @@ async function main() {
 
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
-  var subTransl = [0, -3, -1.7];
+  var subTransl = [0, -3,-10];//[0, -3, -1.7];
   var subRotationY = degToRad(-90.0);
   var submarineUniforms = {
     u_matrix: m4.identity(),
@@ -128,9 +128,10 @@ async function main() {
     parts: subBody.parts,
     obj: subBody.obj,
     uniforms: submarineUniforms,
+    u_world_local: m4.identity(),
     translation: subTransl,
     xRotation: degToRad(0),
-    yRotation: degToRad(-90.0),
+    yRotation: subRotationY,
     zRotation: 0,
   });  
   /* -- Dichiaro le eliche -- */
@@ -190,7 +191,6 @@ async function main() {
     
   }
   
-  console.log(degToRad(0.5));
 
   /* Gestione della camera */
   const cameraTarget = [0, 0, 0];
@@ -201,13 +201,14 @@ async function main() {
   /* -- Gestione del cursore -- */
   let rotateLeft= false;
   let rotateRight = false;
+  let foward = false;
   //test con tasti
   window.addEventListener("keydown", (event)=>{
    //trasla sottomarino e eliche
     switch(event.keyCode){
         //avanti
-        case 87: subTransl[2]-= 1.2;
-                cameraTarget[2] -= 1.2;
+        case 87: 
+          foward = true;
                 break;
         //giù
         case 83:break;
@@ -226,13 +227,17 @@ async function main() {
   
   window.addEventListener("keyup", (event)=>{
     switch(event.keyCode){
+      //avanti
+      case 87: 
+        foward = false;
+        break;
       case 68:
         rotateRight = false;
         break;
       //ruota sx
       case 65:
         rotateLeft= false;
-        console.log(elementsToDraw[0].uniforms.u_matrix);
+        
         break;
     }
   });
@@ -248,7 +253,10 @@ async function main() {
 
 
     /* Gestione camera */
-  
+    if(foward){
+      elementsToDraw[0].u_world_local = m4.translate(elementsToDraw[0].u_world_local, 0, 0, 200);
+      console.log(elementsToDraw[0].u_world_local);
+    }
     if(rotateLeft){
       cameraPosition[0] +=degToRad(1);
       elementsToDraw[0].yRotation += degToRad(0.2);
@@ -262,8 +270,8 @@ async function main() {
 
     const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
     const view_up = [0, 1, 0];
-    const camera = m4.lookAt(cameraPositionVector, cameraTarget, view_up);
-
+    const camera = m4.translate(elementsToDraw[0].u_world_local, 0, 0, 8);//computeMatrix(elementsToDraw[0].u_world_local, m4.addVectors(subTransl, [0, 8, 10]), 0, degToRad(90), 0);//m4.lookAt(cameraPositionVector, cameraTarget, view_up);
+    m4.yRotation(degToRad(0), camera);
 
     //if key pressed moltiplica matrice camera per posizione sottomarino tipo
 
@@ -339,7 +347,7 @@ async function main() {
         object.yRotation,
         object.zRotation);
       
-      let u_world_local = object.uniforms.u_matrix;
+      object.u_world_local = object.uniforms.u_matrix;
 
       // renderizzo passando più array //
       for (const {bufferInfo, material} of object.parts) {
@@ -347,7 +355,7 @@ async function main() {
         webglUtils.setBuffersAndAttributes(gl, programInfo, bufferInfo);
         
         // calls gl.uniform
-        webglUtils.setUniforms(programInfo, { u_world: u_world_local,  }, material); // come parametro solo cose scritte nel vertex shader
+        webglUtils.setUniforms(programInfo, { u_world: object.u_world_local,  }, material); // come parametro solo cose scritte nel vertex shader
 
         /* -- Qui avviene l'effettiva renderizzazione -- */
         // calls gl.drawArrays or gl.drawElements
