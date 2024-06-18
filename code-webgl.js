@@ -145,7 +145,7 @@ async function main() {
 
   async function addRock(y, rockNumber){
     var rockObject=rocksObjs[rockNumber];
-    let rockMatrix= m4.translation(getRandomNumber(-40, 40), y, getRandomNumber(-80, 40));
+    let rockMatrix= m4.translation(getRandomNumber(-50, 40), y, getRandomNumber(-80, 40));
     m4.xRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
     m4.yRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
     let uniform = {
@@ -160,7 +160,7 @@ async function main() {
 
   //definisco in base alla la densità in base a y e poi genero randomicamente uno scoglio
   for(let y=0; y>-120; y-=3){
-    let density = Math.abs( 1.5 * y- 2.5 ); 
+    let density = Math.abs( 0.5 * y- 2.5 ); 
     for(let n=0; n<density; n++){
       let randomRockNumber = Math.floor(Math.random()*rocksObjs.length);
       addRock(y, randomRockNumber);
