@@ -34,6 +34,12 @@ function computeMatrix(viewProjectionMatrix, translation, xRotation, yRotation, 
 }
 
 
+//linear interpolation
+// a - valore inizio / b-valore fine / t - interpolation factor
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
 
 //generazione dei buffer da obj
 async function generateBuffer(url){

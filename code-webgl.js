@@ -118,7 +118,7 @@ async function main() {
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
   var subTransl = [0, -3,-10];//[0, -3, -1.7];
-  var subRotationY = degToRad(-90.0);
+  var subRotationY = degToRad(0.0);
   var submarineUniforms = {
     u_matrix: m4.identity(),
   };
@@ -130,7 +130,7 @@ async function main() {
     uniforms: submarineUniforms,
     u_world_local: m4.identity(),
     translation: subTransl,
-    xRotation: degToRad(0),
+    xRotation: 0,
     yRotation: subRotationY,
     zRotation: 0,
   });  
@@ -141,7 +141,7 @@ async function main() {
     programInfo: programInfo,
     parts: subPropellers.parts,
     obj: subPropellers.obj,
-    uniforms: submarineUniforms,
+    uniforms: m4.identity(),
     translation: subTransl,
     xRotation: 4,
     yRotation: subRotationY,
@@ -182,7 +182,7 @@ async function main() {
   }
 
   //definisco in base alla la densità in base a y e poi genero randomicamente uno scoglio
-  for(let y=0; y>-120; y-=5){
+  for(let y=0; y>-120; y-=4){
     let density = Math.abs( 0.5* y - 2.5 ); 
     for(let n=0; n<density; n++){
       let randomRockNumber = Math.floor(Math.random()*rocksObjs.length);
@@ -237,11 +237,13 @@ async function main() {
       //ruota sx
       case 65:
         rotateLeft= false;
-        
         break;
     }
   });
 
+  const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
+
+  //m4.yRotate(elementsToDraw[0].u_world_local, degToRad(180), elementsToDraw[0].u_world_local);
 
   let then = 0;
   function render(time) {
@@ -257,22 +259,17 @@ async function main() {
 
 
     /* Gestione camera */
-    const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
-    const view_up = [0, 1, 0];
-    const camera = m4.translate(elementsToDraw[0].u_world_local, cameraPosition[0], cameraPosition[1], cameraPosition[2]);//computeMatrix(elementsToDraw[0].u_world_local, m4.addVectors(subTransl, [0, 8, 10]), 0, degToRad(90), 0);//m4.lookAt(cameraPositionVector, cameraTarget, view_up);
-    m4.yRotation(degToRad(0), camera);
+    const camera = m4.translate(submarineUniforms.u_matrix, cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+    m4.yRotate(submarineUniforms.u_matrix,degToRad(90), submarineUniforms.u_matrix);
 
     if(foward){
-      subTransl[2] -= 0.5;
-      m4.translate(camera, 0, 0, -0.5, camera);
+      subTransl[2] -= lerp(0, 7, deltaTime); //sistema scatto
     }
     if(rotateLeft){
-      cameraPosition[0] +=degToRad(1);
       elementsToDraw[0].yRotation += degToRad(0.2);
       elementsToDraw[1].yRotation = elementsToDraw[0].yRotation;
-    } 
+     } 
     if(rotateRight){
-      cameraPosition[0] -=degToRad(1);
       elementsToDraw[0].yRotation -= degToRad(0.2);
       elementsToDraw[1].yRotation = elementsToDraw[0].yRotation;
     }
@@ -347,13 +344,13 @@ async function main() {
       // definisco la matrice
       // gestisco animazioni
       object.uniforms.u_matrix = computeMatrix(
-        u_world,
+        m4.identity(),
         object.translation,
         object.animate ? object.xRotation * time : object.xRotation,
         object.yRotation,
         object.zRotation);
       
-      object.u_world_local = object.uniforms.u_matrix;
+      object.u_world = object.uniforms.u_matrix;
 
       // renderizzo passando più array //
       for (const {bufferInfo, material} of object.parts) {
@@ -361,7 +358,7 @@ async function main() {
         webglUtils.setBuffersAndAttributes(gl, programInfo, bufferInfo);
         
         // calls gl.uniform
-        webglUtils.setUniforms(programInfo, { u_world: object.u_world_local,  }, material); // come parametro solo cose scritte nel vertex shader
+        webglUtils.setUniforms(programInfo, { u_world: object.u_world,  }, material); // come parametro solo cose scritte nel vertex shader
 
         /* -- Qui avviene l'effettiva renderizzazione -- */
         // calls gl.drawArrays or gl.drawElements
