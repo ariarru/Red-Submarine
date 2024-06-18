@@ -37,3 +37,13 @@ body{
     margin: 0.2em 0.5em;
     
 }
+
+
+@media screen and (max-width: 600px){
+    #mainCanva{
+        width: 90vw;
+        height: 70vh;
+        margin: 2rem 0px;
+       /* background-color: #1c3766;*/
+    }
+}

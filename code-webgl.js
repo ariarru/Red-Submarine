@@ -118,6 +118,7 @@ async function main() {
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
   var subTransl = [0, -3, -1.7];
+  var subRotationY = degToRad(-90.0);
   var submarineUniforms = {
     u_matrix: m4.identity(),
   };
@@ -142,7 +143,7 @@ async function main() {
     uniforms: submarineUniforms,
     translation: subTransl,
     xRotation: 4,
-    yRotation: degToRad(-90.0),
+    yRotation: subRotationY,
     zRotation: 0,
     animate: true,
   });  
@@ -156,8 +157,9 @@ async function main() {
     u_matrix: m4.identity(),
   };
 
+  // prendo tutti gli obj degli scogli con i rispettivi materiali
   const rocksObjs = [];
-  for(let i=0; i<(indexes.length-1); i++){
+  for(let i=1; i<(indexes.length-1); i++){
     var href ='./res/rocks/scoglio-'+i.toString()+'.obj';
     const rock = await generateBuffer(href.toString());
     rocksObjs.push(rock);
@@ -179,9 +181,8 @@ async function main() {
   }
 
   //definisco in base alla la densità in base a y e poi genero randomicamente uno scoglio
-  for(let y=0; y>-120; y-=3){
+  for(let y=0; y>-120; y-=5){
     let density = Math.abs( 0.5* y - 2.5 ); 
-    console.log("for" + y.toString() + "i've got "+ density.toString()+ "density");
     for(let n=0; n<density; n++){
       let randomRockNumber = Math.floor(Math.random()*rocksObjs.length);
       addRock(y, randomRockNumber);
@@ -189,63 +190,52 @@ async function main() {
     
   }
   
-  
-  //to select random rock fai indexes[i] con i = Math.random()* indexes.lenght;
-  
-
-  
-
-
-
-
-  
-
-
-
-
-
-
-  function computeMatrix(viewProjectionMatrix, translation, xRotation, yRotation, zRotation) {
-    var matrix = m4.translate(viewProjectionMatrix,
-        translation[0],
-        translation[1],
-        translation[2]);
-    matrix =m4.yRotate(matrix, yRotation);
-    matrix = m4.xRotate(matrix, xRotation);
-    matrix = m4.zRotate(matrix, zRotation);
-    return matrix;
-  }
-
-
+  console.log(degToRad(0.5));
 
   /* Gestione della camera */
   const cameraTarget = [0, 0, 0];
-  const cameraPosition= [0, 0, 8 ];
-
-  /* bottoni per movimento camera */
-  const btnRight = document.getElementById("right");
-  const btnLeft = document.getElementById("left");
-  const btnUp = document.getElementById("up");
-  const btnDown = document.getElementById("down");
-
-  btnRight.addEventListener("click", function() { 
-    moveCamera(0, true); 
-    keyRight = true;});
-
-  btnLeft.addEventListener("click", function() { moveCamera(0, false); keyLeft=true;});
-  btnUp.addEventListener("click",  function() {moveCamera(1, true); keyUp = true;});
-  btnDown.addEventListener("click",  function() {moveCamera(1, false); keyDown=true;});
-
+  const cameraPosition= [0, 0, 8];
   
-  /* funzioni per movimento camera */
-  function moveCamera(index, fw){
-    cameraTarget[index] = cameraTarget[index] + (fw ? 1.5 : -1.5);
-    cameraPosition[index] = cameraPosition[index] + (fw ? 1 : -1);
-    //qui in realtà la camera deve essere moltiplicata rispetto alla matrice del sottomarino a rendere time
-  }
 
 
+  /* -- Gestione del cursore -- */
+  let rotateLeft= false;
+  let rotateRight = false;
+  //test con tasti
+  window.addEventListener("keydown", (event)=>{
+   //trasla sottomarino e eliche
+    switch(event.keyCode){
+        //avanti
+        case 87: subTransl[2]-= 1.2;
+                cameraTarget[2] -= 1.2;
+                break;
+        //giù
+        case 83:break;
+        //su
+        case 69: break;
+        //ruota dx
+        case 68:
+          rotateRight = true;
+            break;
+        //ruota sx
+        case 65:
+          rotateLeft= true;
+          break;
+    }
+  });
   
+  window.addEventListener("keyup", (event)=>{
+    switch(event.keyCode){
+      case 68:
+        rotateRight = false;
+        break;
+      //ruota sx
+      case 65:
+        rotateLeft= false;
+        console.log(elementsToDraw[0].uniforms.u_matrix);
+        break;
+    }
+  });
 
   function render(time) {
     time *= 0.001;  // convert to seconds
@@ -258,9 +248,22 @@ async function main() {
 
 
     /* Gestione camera */
+  
+    if(rotateLeft){
+      cameraPosition[0] +=degToRad(1);
+      elementsToDraw[0].yRotation += degToRad(0.2);
+      elementsToDraw[1].yRotation = elementsToDraw[0].yRotation;
+    } 
+    if(rotateRight){
+      cameraPosition[0] -=degToRad(1);
+      elementsToDraw[0].yRotation -= degToRad(0.2);
+      elementsToDraw[1].yRotation = elementsToDraw[0].yRotation;
+    }
+
     const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
     const view_up = [0, 1, 0];
     const camera = m4.lookAt(cameraPositionVector, cameraTarget, view_up);
+
 
     //if key pressed moltiplica matrice camera per posizione sottomarino tipo
 
@@ -284,9 +287,9 @@ async function main() {
       m4.inverse(viewDirectionProjectionMatrix);
 
     /*-- Informazioni condivise -- */
-    
     let u_world= m4.identity();
     const u_worldInverseTraspose = m4.transpose(m4.inverse(u_world));
+
     const sharedUniforms = {
       u_view: view,
       u_projection: projection,
@@ -298,7 +301,7 @@ async function main() {
       u_worldInverseTraspose: u_worldInverseTraspose,
       //luce sottomarino
       u_lightSubPosition: subTransl,
-      u_lightSubIntensity: 0.3,
+      u_lightSubIntensity: 0,
       u_lightSubDirection: [0 ,1,-1],
     };
     gl.useProgram(programInfo.program);

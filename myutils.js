@@ -1,21 +1,41 @@
 
+//conversione gradi in radianti
 function degToRad(deg) {
   return deg * Math.PI / 180;
 }
 
+// definizione di un numero randomico float tra min e max
+// minimo incluso massimo esclusivo
 function getRandomNumber(min, max) {
   const minCeiled = Math.ceil(min);
   const maxFloored = Math.floor(max);
-  return Math.random() * (maxFloored - minCeiled) + minCeiled; // The maximum is exclusive and the minimum is inclusive
+  return Math.random() * (maxFloored - minCeiled) + minCeiled; 
 }
 
-function generateCoordinatesRocks(){ //forse prende in input la densità?
+//generazione coordinate randomiche
+function generateCoordinatesRocks(){ 
   const coord = [];
   coord[0]= getRandomNumber(-20, 20); //definisco la x
   coord[1]= getRandomNumber(-20, 0);  //definisco la y
   coord[2]= getRandomNumber(-20, 20);  //definisco la z
 }
 
+
+//calcolo delle matrici
+function computeMatrix(viewProjectionMatrix, translation, xRotation, yRotation, zRotation) {
+  var matrix = m4.translate(viewProjectionMatrix,
+      translation[0],
+      translation[1],
+      translation[2]);
+  matrix =m4.yRotate(matrix, yRotation);
+  matrix = m4.xRotate(matrix, xRotation);
+  matrix = m4.zRotate(matrix, zRotation);
+  return matrix;
+}
+
+
+
+//generazione dei buffer da obj
 async function generateBuffer(url){
   // Get A WebGL context
   const canvas = document.getElementById("mainCanva");
