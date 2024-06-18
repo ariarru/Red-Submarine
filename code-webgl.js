@@ -160,7 +160,7 @@ async function main() {
 
   //definisco in base alla la densità in base a y e poi genero randomicamente uno scoglio
   for(let y=0; y>-120; y-=3){
-    let density = Math.abs( 0.5* y - 2.5 ); 
+    let density = Math.abs( 1.5 * y- 2.5 ); 
     for(let n=0; n<density; n++){
       let randomRockNumber = Math.floor(Math.random()*rocksObjs.length);
       addRock(y, randomRockNumber);
@@ -174,28 +174,38 @@ async function main() {
   let rotateRight = false;
   let foward = false;
   let back = false;
+  let dive =false;
+  let emerge= false;
   //test con tasti
   window.addEventListener("keydown", (event)=>{
    //trasla sottomarino e eliche
     switch(event.keyCode){
-        //avanti
+        //avanti W
         case 87: 
           foward = true;
                 break;
-        //giù
+        //indietro S
         case 83:
           back=true;
           break;
-        //su
-        case 69: break;
-        //ruota dx
+        //su E
+        case 69: 
+          emerge=true;
+          break;
+        //giù X
+        case 88: 
+          dive=true;
+          break;
+        //ruota dx D
         case 68:
           rotateRight = true;
             break;
-        //ruota sx
+        //ruota sx A
         case 65:
           rotateLeft= true;
           break;
+        
+
     }
   });
   
@@ -205,9 +215,17 @@ async function main() {
       case 87: 
         foward = false;
         break;
-      //giù
+      //indietro
       case 83:
         back=false;
+        break;
+      //su E
+      case 69: 
+        emerge=false;
+        break;
+      //giù
+      case 88: 
+        dive=false;
         break;
       case 68:
         rotateRight = false;
@@ -249,22 +267,28 @@ async function main() {
   //if key pressed maoltiplica matrice camera per posizione sottomarino tipo
     if(foward){
       m4.translate(elementsToDraw[0].uniforms.u_matrix, -0.5,0,0, elementsToDraw[0].uniforms.u_matrix);//sistema scatto
-      m4.translate(elementsToDraw[1].uniforms.u_matrix, -0.5,0,0, elementsToDraw[1].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
     if(rotateLeft){
-      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix = adaptPropellersRotateY(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
      } 
     if(rotateRight){
-      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix = adaptPropellersRotateY(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
     if(back){
-      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0, 0, -0.5, elementsToDraw[0].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix=m4.copy(elementsToDraw[0].uniforms.u_matrix);
+      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0.5, 0, 0, elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
-    
+    if(dive){
+      m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
+      m4.zRotate(elementsToDraw[1].uniforms.u_matrix, degToRad(2), elementsToDraw[1].uniforms.u_matrix);
+    }
+    if(emerge){
+      m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
+      m4.zRotate(elementsToDraw[1].uniforms.u_matrix, degToRad(-2), elementsToDraw[1].uniforms.u_matrix);
+    }
 
     
 
