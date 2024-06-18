@@ -115,10 +115,21 @@ async function main() {
   /* - array di tutti gli elementi da disegnare - */
   var elementsToDraw =[];
 
+  /*
+  
+     object.uniforms.u_matrix = computeMatrix(
+        m4.identity(),
+        object.translation,
+        object.animate ? object.xRotation * time : object.xRotation,
+        object.yRotation,
+        object.zRotation);
+  
+
+  */
+
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
-  var subTransl = [0, -3,-10];//[0, -3, -1.7];
-  var subRotationY = degToRad(0.0);
+  var subTransl = [0, 0, 0];
   var submarineUniforms = {
     u_matrix: m4.identity(),
   };
@@ -129,23 +140,20 @@ async function main() {
     obj: subBody.obj,
     uniforms: submarineUniforms,
     u_world_local: m4.identity(),
-    translation: subTransl,
-    xRotation: 0,
-    yRotation: subRotationY,
-    zRotation: 0,
   });  
+
+  //m4.yRotate(submarineUniforms.u_matrix, degToRad(-90.0), submarineUniforms.u_matrix);
   /* -- Dichiaro le eliche -- */
   const subPropellers = await generateBuffer('./res/sub-eliche.obj');
+  var propUniform ={
+    u_matrix: m4.multiply(submarineUniforms, m4.identity()),
+  }
   /* aggiungo all'array le eliche*/
   elementsToDraw.push({
     programInfo: programInfo,
     parts: subPropellers.parts,
     obj: subPropellers.obj,
-    uniforms: m4.identity(),
-    translation: subTransl,
-    xRotation: 4,
-    yRotation: subRotationY,
-    zRotation: 0,
+    uniforms: submarineUniforms,
     animate: true,
   });  
 
@@ -153,10 +161,8 @@ async function main() {
 
 
   /* -- Dichiaro gli scogli-- */
-  const  indexes = [1, 2, 3, 4 , 5, 6, 13, 16];
-  var rocksUniform = {
-    u_matrix: m4.identity(),
-  };
+  const  indexes = [1, 2, 3, 4 , 5, 6, 7, 8, 9, 10, 13, 16];
+
 
   // prendo tutti gli obj degli scogli con i rispettivi materiali
   const rocksObjs = [];
@@ -168,21 +174,22 @@ async function main() {
 
   async function addRock(y, rockNumber){
     var rockObject=rocksObjs[rockNumber];
-    var rockTrasl = [getRandomNumber(-40, 40), y, getRandomNumber(-80, 40)];
+    let rockMatrix= m4.translation(getRandomNumber(-40, 40), y, getRandomNumber(-80, 40));
+    m4.xRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
+    m4.yRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
+    let uniform = {
+      u_matrix : rockMatrix,
+    }
     elementsToDraw.push({
       programInfo: programInfo,
       parts: rockObject.parts,
       obj: rockObject.obj,
-      uniforms: rocksUniform,
-      translation: rockTrasl,
-      xRotation: degToRad(getRandomNumber(-20, 20)),
-      yRotation: degToRad(getRandomNumber(-20, 20)),
-      zRotation: 0,
+      uniforms: uniform,
     }); 
   }
 
   //definisco in base alla la densità in base a y e poi genero randomicamente uno scoglio
-  for(let y=0; y>-120; y-=4){
+  for(let y=0; y>-120; y-=3){
     let density = Math.abs( 0.5* y - 2.5 ); 
     for(let n=0; n<density; n++){
       let randomRockNumber = Math.floor(Math.random()*rocksObjs.length);
@@ -243,7 +250,6 @@ async function main() {
 
   const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
 
-  //m4.yRotate(elementsToDraw[0].u_world_local, degToRad(180), elementsToDraw[0].u_world_local);
 
   let then = 0;
   function render(time) {
@@ -260,10 +266,10 @@ async function main() {
 
     /* Gestione camera */
     const camera = m4.translate(submarineUniforms.u_matrix, cameraPosition[0], cameraPosition[1], cameraPosition[2]);
-    m4.yRotate(submarineUniforms.u_matrix,degToRad(90), submarineUniforms.u_matrix);
+    //m4.yRotate(submarineUniforms.u_matrix,degToRad(90), submarineUniforms.u_matrix);
 
     if(foward){
-      subTransl[2] -= lerp(0, 7, deltaTime); //sistema scatto
+      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0,0,0.5, elementsToDraw[0].uniforms.u_matrix)//sistema scatto
     }
     if(rotateLeft){
       elementsToDraw[0].yRotation += degToRad(0.2);
@@ -276,7 +282,7 @@ async function main() {
 
     
 
-    //if key pressed moltiplica matrice camera per posizione sottomarino tipo
+    //if key pressed maoltiplica matrice camera per posizione sottomarino tipo
 
     
     //campo della vista nell'asse y in radianti
@@ -343,22 +349,20 @@ async function main() {
 
       // definisco la matrice
       // gestisco animazioni
-      object.uniforms.u_matrix = computeMatrix(
-        m4.identity(),
-        object.translation,
-        object.animate ? object.xRotation * time : object.xRotation,
-        object.yRotation,
-        object.zRotation);
+      if(object.animate){
+        let temp=object.uniforms.u_matrix;
+        m4.xRotate(temp, degToRad(200*deltaTime),temp);
+        object.uniforms.u_matrix = temp;
+      }
       
-      object.u_world = object.uniforms.u_matrix;
-
+      let m = object.uniforms.u_matrix;
       // renderizzo passando più array //
       for (const {bufferInfo, material} of object.parts) {
         // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
         webglUtils.setBuffersAndAttributes(gl, programInfo, bufferInfo);
         
         // calls gl.uniform
-        webglUtils.setUniforms(programInfo, { u_world: object.u_world,  }, material); // come parametro solo cose scritte nel vertex shader
+        webglUtils.setUniforms(programInfo, { u_world: m,  }, material); // come parametro solo cose scritte nel vertex shader
 
         /* -- Qui avviene l'effettiva renderizzazione -- */
         // calls gl.drawArrays or gl.drawElements
