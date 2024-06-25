@@ -104,7 +104,7 @@ async function main() {
 
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
-  var subTransl = [0, 0, -10];
+ // var subTransl = [0, 0, -10];
   var submarineUniforms = {
     u_matrix: m4.identity(),
   };
@@ -113,6 +113,7 @@ async function main() {
     parts: subBody.parts,
     obj: subBody.obj,
     uniforms: submarineUniforms,
+    quat: [0,0,0,1],
   });  
 
   /* -- Dichiaro le eliche -- */
@@ -125,6 +126,7 @@ async function main() {
     parts: subPropellers.parts,
     obj: subPropellers.obj,
     uniforms: propUniform,
+    quat: [0,0,0,1],
     animate: true,
   });  
 
@@ -144,8 +146,8 @@ async function main() {
   }
 
   async function addRock(y, rockNumber){
-    var rockObject=rocksObjs[rockNumber];
-    let rockMatrix= m4.translation(getRandomNumber(-50, 40), y, getRandomNumber(-80, 40));
+    var rockObject=rocksObjs[rockNumber]; 
+    let rockMatrix= m4.translation(getXRock(), y, getRandomNumber(-80, 40));
     m4.xRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
     m4.yRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
     let uniform = {
@@ -170,83 +172,31 @@ async function main() {
   
 
   /* -- Gestione della navigazione -- */
-  let rotateLeft= false;
-  let rotateRight = false;
-  let foward = false;
-  let back = false;
-  let dive =false;
-  let emerge= false;
+  const moves = new Move();
   //test con tasti
   window.addEventListener("keydown", (event)=>{
-   //trasla sottomarino e eliche
-    switch(event.keyCode){
-        //avanti W
-        case 87: 
-          foward = true;
-                break;
-        //indietro S
-        case 83:
-          back=true;
-          break;
-        //su E
-        case 69: 
-          emerge=true;
-          break;
-        //giù X
-        case 88: 
-          dive=true;
-          break;
-        //ruota dx D
-        case 68:
-          rotateRight = true;
-            break;
-        //ruota sx A
-        case 65:
-          rotateLeft= true;
-          break;
-        
-
-    }
+   moves.pressKey(event.keyCode);
   });
   
   window.addEventListener("keyup", (event)=>{
-    switch(event.keyCode){
-      //avanti
-      case 87: 
-        foward = false;
-        break;
-      //indietro
-      case 83:
-        back=false;
-        break;
-      //su E
-      case 69: 
-        emerge=false;
-        break;
-      //giù
-      case 88: 
-        dive=false;
-        break;
-      case 68:
-        rotateRight = false;
-        break;
-      //ruota sx
-      case 65:
-        rotateLeft= false;
-        break;
-    }
+    moves.releaseKey(event.keyCode);
   });
 
 
 
-  /* Gestione della camera */
+  /* -- Gestione della camera -- */
   const cameraTarget = [0, 0, 0];
   const cameraPosition= [0, 2, 8];
   const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
 
   
+  var degree=0;     //variabile cumulativa di gradi di rotazione delle eliche
+  let then = 0;     //variabile per il calcolo del deltaTime
 
-  let then = 0;
+  let accelleration = 0.5; //accellerazione movimento
+  let velocity=0;   //velocità del movimento del sottomairno
+  let maxVelocity = 30; //massima velocità del sottomarino
+
   function render(time) {
     time *= 0.001;  // convert to seconds
     const deltaTime = time-then;
@@ -264,33 +214,42 @@ async function main() {
     m4.translate(camera, cameraPosition[0], cameraPosition[1], cameraPosition[2], camera);
     
 
+    let target =0;
   //if key pressed maoltiplica matrice camera per posizione sottomarino tipo
-    if(foward){
-      m4.translate(elementsToDraw[0].uniforms.u_matrix, -0.5,0,0, elementsToDraw[0].uniforms.u_matrix);//sistema scatto
+    if(moves.foward){
+      //TODO: sistema scatto decellerazione
+      target =-1;
+      velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration);
+      let xTrasl = velocity * deltaTime;
+
+      m4.translate(elementsToDraw[0].uniforms.u_matrix, xTrasl,0,0, elementsToDraw[0].uniforms.u_matrix);//-0.3
       elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
-    if(rotateLeft){
+    if(moves.rotateLeft){
       m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
       elementsToDraw[1].uniforms.u_matrix = adaptPropellersRotateY(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
      } 
-    if(rotateRight){
+    if(moves.rotateRight){
       m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
       elementsToDraw[1].uniforms.u_matrix = adaptPropellersRotateY(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
-    if(back){
-      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0.5, 0, 0, elementsToDraw[0].uniforms.u_matrix);
+    if(moves.back){
+      target = 1;
+      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0.3, 0, 0, elementsToDraw[0].uniforms.u_matrix);
       elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
-    if(dive){
+    if(moves.dive){
       m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
       m4.zRotate(elementsToDraw[1].uniforms.u_matrix, degToRad(2), elementsToDraw[1].uniforms.u_matrix);
     }
-    if(emerge){
+    if(moves.emerge){
       m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
       m4.zRotate(elementsToDraw[1].uniforms.u_matrix, degToRad(-2), elementsToDraw[1].uniforms.u_matrix);
     }
 
-    
+    /*-- posizione luce del sottomarino -- */
+    // definito in base alla posizione della camera
+    var subLightPos = [camera[12], camera[13], camera[14]];
 
     
     //campo della vista nell'asse y in radianti
@@ -325,9 +284,9 @@ async function main() {
       u_lightWorldDirection: [3, 3, -2.5],
       u_worldInverseTraspose: u_worldInverseTraspose,
       //luce sottomarino
-      u_lightSubPosition: subTransl,
+      u_lightSubPosition: subLightPos,
       u_lightSubIntensity: 0,
-      u_lightSubDirection: [0 ,1,-1],
+      u_lightSubDirection: [1 ,1,-1], //capire come modificarlo
     };
     gl.useProgram(programInfo.program);
     // calls gl.uniform
@@ -355,15 +314,17 @@ async function main() {
         lastUsedBufferInfo = objBufferInfo;  
       }
 
+
       // definisco la matrice
+      let m = object.uniforms.u_matrix;
       // gestisco animazioni
       if(object.animate){
-        let temp = object.uniforms.u_matrix;
-        m4.xRotate(temp, degToRad(200 * deltaTime),temp);
-        object.uniforms.u_matrix = temp;
+        degree = (degree > 360 ? 0 : (degree+ 6));
+        m = m4.xRotate(m, degToRad(degree),m4.copy(m));
       }
       
-      let m = object.uniforms.u_matrix;
+      
+
       // renderizzo passando più array //
       for (const {bufferInfo, material} of object.parts) {
         // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer

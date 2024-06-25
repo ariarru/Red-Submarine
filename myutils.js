@@ -59,6 +59,13 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
+//formula per distribuzione rocce 
+//y=60 * sin(0.05 *  (x-30))
+function getXRock(){
+  let x = getRandomNumber(-60, 60);
+  let y = Math.sin(0.5 * (x-30)) * 60;
+  return y;
+}
 
 //generazione dei buffer da obj
 async function generateBuffer(url){
