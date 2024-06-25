@@ -1,12 +1,12 @@
 class Move{
     /* -- Gestione della navigazione -- */
     rotateLeft;           //tasto A 
-    rotateRight;         //tasto D
-    foward;              //tasto W
-    back;                //tasto S
+    rotateRight;          //tasto D
+    foward;               //tasto W
+    back;                 //tasto S
     dive;                 //tasto X
     emerge;               //tasto E
-    target;
+    target;               //target di direzione di movimento  
     
 
    constructor(){
@@ -19,18 +19,23 @@ class Move{
     this.target =0;
    }
    
+   stopTarget(){
+    this.target=0;
+   }
+
+   setTarget(val){
+    this.target = val;
+   }
   
   pressKey(keyCode){
     switch(keyCode){
         //avanti W
         case 87: 
             this.foward = true;
-            this.target = -1;
             break;
         //indietro S
         case 83:
             this.back=true;
-            this.target = 1;
             break;
         //su E
         case 69: 
@@ -56,12 +61,10 @@ class Move{
         //avanti
         case 87: 
             this.foward = false;
-            this.target =0;
             break;
         //indietro
         case 83:
             this.back=false;
-            this.target =0;
             break;
         //su E
         case 69: 

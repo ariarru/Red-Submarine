@@ -193,9 +193,9 @@ async function main() {
   var degree=0;     //variabile cumulativa di gradi di rotazione delle eliche
   let then = 0;     //variabile per il calcolo del deltaTime
 
-  let accelleration = 0.5; //accellerazione movimento
+  let accelleration = 1.25; //accellerazione movimento
   let velocity=0;   //velocità del movimento del sottomairno
-  let maxVelocity = 30; //massima velocità del sottomarino
+  let maxVelocity = 25; //massima velocità del sottomarino
 
   function render(time) {
     time *= 0.001;  // convert to seconds
@@ -214,16 +214,11 @@ async function main() {
     m4.translate(camera, cameraPosition[0], cameraPosition[1], cameraPosition[2], camera);
     
 
-    let target =0;
-  //if key pressed maoltiplica matrice camera per posizione sottomarino tipo
+    /*-- Gestione dei movimenti --*/
+    moves.stopTarget();
+    //if key pressed moltiplica matrice camera per posizione sottomarino tipo
     if(moves.foward){
-      //TODO: sistema scatto decellerazione
-      target =-1;
-      velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration);
-      let xTrasl = velocity * deltaTime;
-
-      m4.translate(elementsToDraw[0].uniforms.u_matrix, xTrasl,0,0, elementsToDraw[0].uniforms.u_matrix);//-0.3
-      elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+      moves.setTarget(-1);
     }
     if(moves.rotateLeft){
       m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
@@ -234,9 +229,7 @@ async function main() {
       elementsToDraw[1].uniforms.u_matrix = adaptPropellersRotateY(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
     if(moves.back){
-      target = 1;
-      m4.translate(elementsToDraw[0].uniforms.u_matrix, 0.3, 0, 0, elementsToDraw[0].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+      moves.setTarget(1);
     }
     if(moves.dive){
       m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
@@ -246,6 +239,15 @@ async function main() {
       m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
       m4.zRotate(elementsToDraw[1].uniforms.u_matrix, degToRad(-2), elementsToDraw[1].uniforms.u_matrix);
     }
+
+    velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration);
+    let xTrasl = velocity * deltaTime;
+
+    m4.translate(elementsToDraw[0].uniforms.u_matrix, xTrasl,0,0, elementsToDraw[0].uniforms.u_matrix);//-0.3
+    elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+    
+
+
 
     /*-- posizione luce del sottomarino -- */
     // definito in base alla posizione della camera
@@ -317,9 +319,9 @@ async function main() {
 
       // definisco la matrice
       let m = object.uniforms.u_matrix;
-      // gestisco animazioni
+      // gestisco l'animazione delle eliche
       if(object.animate){
-        degree = (degree > 360 ? 0 : (degree+ 6));
+        degree = (degree > 360 ? 0 : (degree + 4 + 3.5 *Math.abs(velocity/maxVelocity)));
         m = m4.xRotate(m, degToRad(degree),m4.copy(m));
       }
       
