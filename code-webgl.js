@@ -184,6 +184,19 @@ async function main() {
     z: wallUniform.u_matrix[14],
   }
 
+
+  /*--bubble-- */
+const bubble = await generateBuffer('./res/bubble.obj');
+var bubbleUniforms={
+  u_matrix: m4.translation(-9,0,0, m4.identity()),
+}
+elementsToDraw.push({
+  parts: bubble.parts,
+  obj: bubble.obj,
+  uniforms: bubbleUniforms,
+});
+
+console.log(bubble);
   /* -- Gestione della navigazione -- */
   const moves = new Move();
   //test con tasti
