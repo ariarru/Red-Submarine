@@ -104,7 +104,6 @@ async function main() {
 
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
- // var subTransl = [0, 0, -10];
   var submarineUniforms = {
     u_matrix: m4.identity(),
   };
@@ -113,7 +112,6 @@ async function main() {
     parts: subBody.parts,
     obj: subBody.obj,
     uniforms: submarineUniforms,
-    quat: [0,0,0,1],
   });  
 
   /* -- Dichiaro le eliche -- */
@@ -126,7 +124,6 @@ async function main() {
     parts: subPropellers.parts,
     obj: subPropellers.obj,
     uniforms: propUniform,
-    quat: [0,0,0,1],
     animate: true,
   });  
 
@@ -134,7 +131,7 @@ async function main() {
 
 
   /* -- Dichiaro gli scogli-- */
-  const  indexes = [1, 2, 3, 4 , 5, 6, 7, 8, 9, 10, 13, 16];
+/*  const  indexes = [1, 2, 3, 4 , 5, 6, 7, 8, 9, 10, 13, 16];
 
 
   // prendo tutti gli obj degli scogli con i rispettivi materiali
@@ -169,7 +166,23 @@ async function main() {
     }
     
   }
-  
+*/
+
+  /*--Dichiaro la parete di partenza-- */
+  const backWall = await generateBuffer('./res/wall.obj');
+  var wallUniform={
+    u_matrix: m4.translation(9,0,0, m4.identity()),
+  }
+  elementsToDraw.push({
+    parts: backWall.parts,
+    obj: backWall.obj,
+    uniforms: wallUniform,
+  });
+  let wallPos ={
+    x: wallUniform.u_matrix[12],
+    y: wallUniform.u_matrix[13],
+    z: wallUniform.u_matrix[14],
+  }
 
   /* -- Gestione della navigazione -- */
   const moves = new Move();
@@ -243,8 +256,23 @@ async function main() {
     velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration);
     let xTrasl = velocity * deltaTime;
 
-    m4.translate(elementsToDraw[0].uniforms.u_matrix, xTrasl,0,0, elementsToDraw[0].uniforms.u_matrix);//-0.3
-    elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+    let subPos ={
+      x: elementsToDraw[0].uniforms.u_matrix[12],
+      y: elementsToDraw[0].uniforms.u_matrix[13],
+      z: elementsToDraw[0].uniforms.u_matrix[14],
+    }
+
+    if(velocity !=0 && (subPos.x + xTrasl > wallPos.x +( 2 * moves.target))){
+      console.log("subPos.x:"+subPos.x.toString()+"  xTrasl: "+xTrasl.toString()+"   wallPos.x: "+wallPos.x.toString()+"   target: "+ moves.target.toString());
+      moves.stopTarget();
+      //TODO: fai esplodere tutto
+    } else{
+      m4.translate(elementsToDraw[0].uniforms.u_matrix, xTrasl,0,0, elementsToDraw[0].uniforms.u_matrix);
+      elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+    }
+
+
+   
     
 
 
@@ -281,14 +309,14 @@ async function main() {
       u_projection: projection,
       u_viewWorldPosition: cameraPositionVector,
       opacity:0.4,
-      u_lightWorldPosition: [0, 20, -3],
+      u_lightWorldPosition: [0, 20, 0],
       u_lightWorldIntensity: 0.8,  //quando vado in profondità forse lo devo diminuire di 0.001
-      u_lightWorldDirection: [3, 3, -2.5],
+      u_lightWorldDirection: [-0.5, 3, 0],
       u_worldInverseTraspose: u_worldInverseTraspose,
       //luce sottomarino
       u_lightSubPosition: subLightPos,
       u_lightSubIntensity: 0,
-      u_lightSubDirection: [1 ,1,-1], //capire come modificarlo
+      u_lightSubDirection: m4.translate(1,-1,1, subLightPos), //capire come modificarlo
     };
     gl.useProgram(programInfo.program);
     // calls gl.uniform

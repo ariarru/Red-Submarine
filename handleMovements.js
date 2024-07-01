@@ -7,6 +7,7 @@ class Move{
     dive;                 //tasto X
     emerge;               //tasto E
     target;               //target di direzione di movimento  
+
     
 
    constructor(){
