@@ -1,16 +1,18 @@
-class Object{
+class SeaObject{
     /*-- Variabili dell'oggetto --*/
     obj;
     parts;
     uniforms;
+    u_matrix;
     animate;
 
     
     constructor(fullObj){
         this.obj = fullObj.obj;
         this.parts = fullObj.parts;
+        this.u_matrix=m4.identity();
         this.uniforms = {
-            u_matrix: m4.identity(),
+            u_matrix: this.u_matrix,
         }
         this.animate = false;
     }
@@ -20,11 +22,12 @@ class Object{
 
     //metodo per traslare l'oggetto in una posizione predefinita
     translateObj(tx, ty, tz){
-        this.uniforms.u_matrix = m4.translation(tx, ty, tz, this.uniforms.u_matrix);
+        this.u_matrix = m4.translation(tx, ty, tz, this.u_matrix);
     }
 
     //prendo le coordinate dell'oggetto nello spazio
-    getPosX(){ return this.uniforms.u_matrix[12];}
-    getPosY(){ return this.uniforms.u_matrix[13];}
-    getPosZ(){ return this.uniforms.u_matrix[14];}
+    getX(){ return this.u_matrix[12];}
+    getY(){ return this.u_matrix[13];}
+    getZ(){ return this.u_matrix[14];}
+
 }

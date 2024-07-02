@@ -7,7 +7,8 @@ class Move{
     dive;                 //tasto X
     emerge;               //tasto E
     target;               //target di direzione di movimento  
-
+    ableFoward;           //abilitazione movimento in avanti
+    ableBack;             //abilitazione movimento indietro
     
 
    constructor(){
@@ -18,6 +19,8 @@ class Move{
     this.dive =false;                 //tasto X
     this.emerge= false;               //tasto E
     this.target =0;
+    this.ableFoward=true;
+    this.ableBack=true;
    }
    
    stopTarget(){
@@ -86,6 +89,7 @@ class Move{
       }
   }
 
+  
   
   
 }

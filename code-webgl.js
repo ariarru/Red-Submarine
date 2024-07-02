@@ -104,29 +104,19 @@ async function main() {
 
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
-  //const submarine = new Object(subBody);
-  var submarineUniforms = {
-    u_matrix: m4.identity(),
-  };
-  /* aggiungo all'array il sottomarino*/
-  elementsToDraw.push({
-    parts: subBody.parts,
-    obj: subBody.obj,
-    uniforms: submarineUniforms,
-  });  
+  const submarine = new SeaObject(subBody);
+  elementsToDraw.push(submarine);  
 
   /* -- Dichiaro le eliche -- */
   const subPropellers = await generateBuffer('./res/sub-eliche.obj');
-  var propUniform ={
-    u_matrix: m4.copy(submarineUniforms.u_matrix),
-  }
+  const propellers = new SeaObject(subPropellers);
+  propellers.setAnimate();
+
+/*  var propUniform ={
+    u_matrix: m4.copy(submarine.u_matrix),
+  }*/
   /* aggiungo all'array le eliche*/
-  elementsToDraw.push({
-    parts: subPropellers.parts,
-    obj: subPropellers.obj,
-    uniforms: propUniform,
-    animate: true,
-  });  
+  elementsToDraw.push(propellers);  
 
   /*-- Dichiaro il vettore luce del sottomarino -- */
 
@@ -171,42 +161,24 @@ async function main() {
 
   /*--Dichiaro la parete di partenza-- */
   const backWall = await generateBuffer('./res/wall.obj');
-  var wallUniform={
-    u_matrix: m4.translation(9,0,0, m4.identity()),
-  }
-  elementsToDraw.push({
-    parts: backWall.parts,
-    obj: backWall.obj,
-    uniforms: wallUniform,
-  });
-  let wallPos ={
-    x: wallUniform.u_matrix[12],
-    y: wallUniform.u_matrix[13],
-    z: wallUniform.u_matrix[14],
-  }
+  const wall = new SeaObject(backWall);
+  wall.translateObj(9, 0, 0);
+  elementsToDraw.push(wall);
 
 
-  /*--bubble-- */
+
+  /*--Dichiaro la bolla dentro il tesoro-- */
   const bubble = await generateBuffer('./res/bubble.obj');
-  var bubbleUniforms={
-    u_matrix: m4.translation(-9,2,0, m4.identity()),
-  }
-  elementsToDraw.push({
-    parts: bubble.parts,
-    obj: bubble.obj,
-    uniforms: bubbleUniforms,
-  });
+  const faceBubble = new SeaObject(bubble);
+  faceBubble.translateObj(-9,2,0);
+  //faceBubble.setAnimate();
+  elementsToDraw.push(faceBubble);
 
 /*-- Definisco il tesoro --*/
   const treasure = await generateBuffer('./res/treasure/treasure-closed.obj');
-  var treasureUniforms ={
-    u_matrix: m4.translation(-9,3,0, m4.identity()),
-  };
-  elementsToDraw.push({
-    parts: treasure.parts,
-    obj: treasure.obj,
-    uniforms: treasureUniforms,
-  });
+  const closedTrasure = new SeaObject(treasure);
+  closedTrasure.translateObj(-9,3,0);
+  elementsToDraw.push(closedTrasure);
 
 
   /* -- Gestione della navigazione -- */
@@ -227,7 +199,7 @@ async function main() {
   const cameraPosition= [0, 2, 8];
   const cameraPositionVector = m4.addVectors(cameraTarget, cameraPosition);
 
-  
+  /* -- Variabili per la gestione dei movimenti -- */
   var degree=0;     //variabile cumulativa di gradi di rotazione delle eliche
   let then = 0;     //variabile per il calcolo del deltaTime
 
@@ -247,55 +219,57 @@ async function main() {
     gl.clear(gl.DEPTH_TEST);
 
 
-    /* Gestione camera */
-    const camera = m4.yRotate(submarineUniforms.u_matrix, degToRad(90));
+    /*-- Gestione camera --*/
+    const camera = m4.yRotate(submarine.u_matrix, degToRad(90));
     m4.translate(camera, cameraPosition[0], cameraPosition[1], cameraPosition[2], camera);
     
 
     /*-- Gestione dei movimenti --*/
     moves.stopTarget();
-    //if key pressed moltiplica matrice camera per posizione sottomarino tipo
-    if(moves.foward){
+    if(moves.foward && moves.ableFoward){
       moves.setTarget(-1);
     }
     if(moves.rotateLeft){
-      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix = adaptPropellersRotateY(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+      m4.yRotate(elementsToDraw[0].u_matrix, degToRad(2), elementsToDraw[0].u_matrix);
+      elementsToDraw[1].u_matrix = adaptPropellersRotateY(elementsToDraw[0].u_matrix, elementsToDraw[1].u_matrix);
      } 
     if(moves.rotateRight){
-      m4.yRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix = adaptPropellersRotateY(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+      m4.yRotate(elementsToDraw[0].u_matrix, degToRad(-2), elementsToDraw[0].u_matrix);
+      elementsToDraw[1].u_matrix = adaptPropellersRotateY(elementsToDraw[0].u_matrix, elementsToDraw[1].u_matrix);
     }
-    if(moves.back){
+    if(moves.back && moves.ableBack){
       moves.setTarget(1);
     }
     if(moves.dive){
-      m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(2), elementsToDraw[0].uniforms.u_matrix);
-      m4.zRotate(elementsToDraw[1].uniforms.u_matrix, degToRad(2), elementsToDraw[1].uniforms.u_matrix);
+      m4.zRotate(elementsToDraw[0].u_matrix, degToRad(2), elementsToDraw[0].u_matrix);
+      m4.zRotate(elementsToDraw[1].u_matrix, degToRad(2), elementsToDraw[1].u_matrix);
     }
     if(moves.emerge){
-      m4.zRotate(elementsToDraw[0].uniforms.u_matrix, degToRad(-2), elementsToDraw[0].uniforms.u_matrix);
-      m4.zRotate(elementsToDraw[1].uniforms.u_matrix, degToRad(-2), elementsToDraw[1].uniforms.u_matrix);
+      m4.zRotate(elementsToDraw[0].u_matrix, degToRad(-2), elementsToDraw[0].u_matrix);
+      m4.zRotate(elementsToDraw[1].u_matrix, degToRad(-2), elementsToDraw[1].u_matrix);
     }
 
-    velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration);
-    let xTrasl = velocity * deltaTime;
+    velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration); //variabile velcoità doi spostamento
+    let xTrasl = velocity * deltaTime; //quantità di spostamento
 
-    let subPos ={
-      x: elementsToDraw[0].uniforms.u_matrix[12],
-      y: elementsToDraw[0].uniforms.u_matrix[13],
-      z: elementsToDraw[0].uniforms.u_matrix[14],
-    }
+    let valX = submarine.getX() + xTrasl; //variabile di controllo
+    let posTreasure = closedTrasure.getX() - (3 * moves.target);
+//TODO: gestisci anche y o z del tesoro
 
-    if(velocity !=0 && (subPos.x + xTrasl > wallPos.x +( 2 * moves.target))){
-      console.log("subPos.x:"+subPos.x.toString()+"  xTrasl: "+xTrasl.toString()+"   wallPos.x: "+wallPos.x.toString()+"   target: "+ moves.target.toString());
+    if(velocity !=0 && ( valX > wall.getX() +( 2 * moves.target))){
+      console.log("subPos.x:"+submarine.getX().toString()+"  xTrasl: "+xTrasl.toString()+"   wallPos.x: "+wall.getX().toString()+"   target: "+ moves.target.toString());
       moves.stopTarget();
       //TODO: fai esplodere tutto
-    } else if(velocity != 0 && (subPos.x + xTrasl > wallPos.x +( 2 * moves.target))){
-
+      //TODO: gestisci able back e able foward
+    } else if(velocity != 0 && ( Math.abs(valX) >= Math.abs(posTreasure))){
+      console.log("posTreasure: "+ posTreasure.toString());
+      console.log("subPos.x:"+ valX.toString());
+      moves.ableFoward = false;
+      velocity = 0;
     }else{
-      m4.translate(elementsToDraw[0].uniforms.u_matrix, xTrasl,0,0, elementsToDraw[0].uniforms.u_matrix);
-      elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
+      moves.ableFoward = true;
+      m4.translate(elementsToDraw[0].u_matrix, xTrasl,0,0, elementsToDraw[0].u_matrix);
+      elementsToDraw[1].u_matrix = adaptPropellersTransl(elementsToDraw[0].u_matrix, elementsToDraw[1].u_matrix);
     }
 
 
