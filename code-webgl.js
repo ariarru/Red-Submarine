@@ -104,6 +104,7 @@ async function main() {
 
   /* -- Dichiaro il sottomarino -- */
   const subBody = await generateBuffer('./res/sub-body.obj');
+  //const submarine = new Object(subBody);
   var submarineUniforms = {
     u_matrix: m4.identity(),
   };
@@ -186,17 +187,28 @@ async function main() {
 
 
   /*--bubble-- */
-const bubble = await generateBuffer('./res/bubble.obj');
-var bubbleUniforms={
-  u_matrix: m4.translation(-9,0,0, m4.identity()),
-}
-elementsToDraw.push({
-  parts: bubble.parts,
-  obj: bubble.obj,
-  uniforms: bubbleUniforms,
-});
+  const bubble = await generateBuffer('./res/bubble.obj');
+  var bubbleUniforms={
+    u_matrix: m4.translation(-9,2,0, m4.identity()),
+  }
+  elementsToDraw.push({
+    parts: bubble.parts,
+    obj: bubble.obj,
+    uniforms: bubbleUniforms,
+  });
 
-console.log(bubble);
+/*-- Definisco il tesoro --*/
+  const treasure = await generateBuffer('./res/treasure/treasure-closed.obj');
+  var treasureUniforms ={
+    u_matrix: m4.translation(-9,3,0, m4.identity()),
+  };
+  elementsToDraw.push({
+    parts: treasure.parts,
+    obj: treasure.obj,
+    uniforms: treasureUniforms,
+  });
+
+
   /* -- Gestione della navigazione -- */
   const moves = new Move();
   //test con tasti
@@ -279,7 +291,9 @@ console.log(bubble);
       console.log("subPos.x:"+subPos.x.toString()+"  xTrasl: "+xTrasl.toString()+"   wallPos.x: "+wallPos.x.toString()+"   target: "+ moves.target.toString());
       moves.stopTarget();
       //TODO: fai esplodere tutto
-    } else{
+    } else if(velocity != 0 && (subPos.x + xTrasl > wallPos.x +( 2 * moves.target))){
+
+    }else{
       m4.translate(elementsToDraw[0].uniforms.u_matrix, xTrasl,0,0, elementsToDraw[0].uniforms.u_matrix);
       elementsToDraw[1].uniforms.u_matrix = adaptPropellersTransl(elementsToDraw[0].uniforms.u_matrix, elementsToDraw[1].uniforms.u_matrix);
     }
