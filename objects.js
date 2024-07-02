@@ -2,32 +2,28 @@ class SeaObject{
     /*-- Variabili dell'oggetto --*/
     obj;
     parts;
-    uniforms;
-    u_matrix;
-    animate;
+    uniformMatrix;
+    animateX;
+    animateY;
 
     
     constructor(fullObj){
         this.obj = fullObj.obj;
         this.parts = fullObj.parts;
-        this.u_matrix=m4.identity();
-        this.uniforms = {
-            u_matrix: this.u_matrix,
-        }
-        this.animate = false;
+        this.uniformMatrix=m4.identity();
+        this.animateX = false;
+        this.animateY = false;
     }
 
-    //definisco proprietà di animazione
-    setAnimate(){this.animate = !this.animate;}
-
+    
     //metodo per traslare l'oggetto in una posizione predefinita
     translateObj(tx, ty, tz){
-        this.u_matrix = m4.translation(tx, ty, tz, this.u_matrix);
+        this.uniformMatrix = m4.translation(tx, ty, tz, this.uniformMatrix);
     }
 
     //prendo le coordinate dell'oggetto nello spazio
-    getX(){ return this.u_matrix[12];}
-    getY(){ return this.u_matrix[13];}
-    getZ(){ return this.u_matrix[14];}
+    getX(){ return this.uniformMatrix[12];}
+    getY(){ return this.uniformMatrix[13];}
+    getZ(){ return this.uniformMatrix[14];}
 
 }

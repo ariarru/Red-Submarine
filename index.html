@@ -117,15 +117,12 @@
                     (emissive +
                     ambient * u_ambientLight +
                     effectiveDiffuse * worldLight * v_lightWorldIntensity+
-                    effectiveSpecular * pow(specularLight, shininess)), effectiveOpacity);
-
-
-                /* +
+                    effectiveSpecular * pow(specularLight, shininess)) +
                     (emissive +
                     ambient * u_ambientLight +
                     effectiveDiffuse * subLight * v_lightSubIntensity+
                     effectiveSpecular * pow(specularLightFromSub, shininess)),
-                    effectiveOpacity);*/
+                    effectiveOpacity);
 
                 /*
                 vec4(

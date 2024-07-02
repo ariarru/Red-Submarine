@@ -110,10 +110,10 @@ async function main() {
   /* -- Dichiaro le eliche -- */
   const subPropellers = await generateBuffer('./res/sub-eliche.obj');
   const propellers = new SeaObject(subPropellers);
-  propellers.setAnimate();
+  propellers.animateX=true;
 
 /*  var propUniform ={
-    u_matrix: m4.copy(submarine.u_matrix),
+    uniformMatrix: m4.copy(submarine.uniformMatrix),
   }*/
   /* aggiungo all'array le eliche*/
   elementsToDraw.push(propellers);  
@@ -139,7 +139,7 @@ async function main() {
     m4.xRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
     m4.yRotate(rockMatrix, degToRad(getRandomNumber(-20, 20)), rockMatrix);
     let uniform = {
-      u_matrix : rockMatrix,
+      uniformMatrix : rockMatrix,
     }
     elementsToDraw.push({
       parts: rockObject.parts,
@@ -171,14 +171,15 @@ async function main() {
   const bubble = await generateBuffer('./res/bubble.obj');
   const faceBubble = new SeaObject(bubble);
   faceBubble.translateObj(-9,2,0);
-  //faceBubble.setAnimate();
-  elementsToDraw.push(faceBubble);
 
-/*-- Definisco il tesoro --*/
+  /*-- Definisco il tesoro --*/
   const treasure = await generateBuffer('./res/treasure/treasure-closed.obj');
   const closedTrasure = new SeaObject(treasure);
   closedTrasure.translateObj(-9,3,0);
   elementsToDraw.push(closedTrasure);
+
+  const finishTreasure = await generateBuffer('./res/treasure/treasure-open.obj');
+  const openTreasure = new SeaObject(finishTreasure);
 
 
   /* -- Gestione della navigazione -- */
@@ -206,7 +207,32 @@ async function main() {
   let accelleration = 1.25; //accellerazione movimento
   let velocity=0;   //velocità del movimento del sottomairno
   let maxVelocity = 25; //massima velocità del sottomarino
+  let bubbleVelocity =0; //velocità della bolla
 
+  /*-- Variabili di gioco --*/
+  var treasureFound = false;
+  canvas.addEventListener("click", function(event){
+    if(treasureFound){
+      console.log("apriti sesamo");
+      //tesoro diventa aperto
+      let t = elementsToDraw.pop();
+      openTreasure.uniformMatrix = m4.copy(t.uniformMatrix);
+      console.log(closedTrasure.uniformMatrix);
+      console.log(t.uniformMatrix);
+      //controllo al fine di non far comparire troppi tesori aperti
+      if(!elementsToDraw.includes(openTreasure)){
+        elementsToDraw.push(openTreasure);
+      }
+      //bolla compare
+      faceBubble.animateY=true;
+      if(!elementsToDraw.includes(faceBubble)){
+        elementsToDraw.push(faceBubble);
+      }
+      //aggiungi luce dentro tesoro
+    }
+  })
+
+  /*-- Render Time --*/
   function render(time) {
     time *= 0.001;  // convert to seconds
     const deltaTime = time-then;
@@ -220,7 +246,7 @@ async function main() {
 
 
     /*-- Gestione camera --*/
-    const camera = m4.yRotate(submarine.u_matrix, degToRad(90));
+    const camera = m4.yRotate(submarine.uniformMatrix, degToRad(90));
     m4.translate(camera, cameraPosition[0], cameraPosition[1], cameraPosition[2], camera);
     
 
@@ -230,49 +256,56 @@ async function main() {
       moves.setTarget(-1);
     }
     if(moves.rotateLeft){
-      m4.yRotate(elementsToDraw[0].u_matrix, degToRad(2), elementsToDraw[0].u_matrix);
-      elementsToDraw[1].u_matrix = adaptPropellersRotateY(elementsToDraw[0].u_matrix, elementsToDraw[1].u_matrix);
+      m4.yRotate(elementsToDraw[0].uniformMatrix, degToRad(2), elementsToDraw[0].uniformMatrix);
+      elementsToDraw[1].uniformMatrix = adaptPropellersRotateY(elementsToDraw[0].uniformMatrix, elementsToDraw[1].uniformMatrix);
+      treasureFound=false; //se il sottomarino si sposta allora va via dal tesoro
      } 
     if(moves.rotateRight){
-      m4.yRotate(elementsToDraw[0].u_matrix, degToRad(-2), elementsToDraw[0].u_matrix);
-      elementsToDraw[1].u_matrix = adaptPropellersRotateY(elementsToDraw[0].u_matrix, elementsToDraw[1].u_matrix);
+      m4.yRotate(elementsToDraw[0].uniformMatrix, degToRad(-2), elementsToDraw[0].uniformMatrix);
+      elementsToDraw[1].uniformMatrix = adaptPropellersRotateY(elementsToDraw[0].uniformMatrix, elementsToDraw[1].uniformMatrix);
+      treasureFound=false;
     }
     if(moves.back && moves.ableBack){
       moves.setTarget(1);
+      treasureFound=false;
     }
     if(moves.dive){
-      m4.zRotate(elementsToDraw[0].u_matrix, degToRad(2), elementsToDraw[0].u_matrix);
-      m4.zRotate(elementsToDraw[1].u_matrix, degToRad(2), elementsToDraw[1].u_matrix);
+      m4.zRotate(elementsToDraw[0].uniformMatrix, degToRad(2), elementsToDraw[0].uniformMatrix);
+      m4.zRotate(elementsToDraw[1].uniformMatrix, degToRad(2), elementsToDraw[1].uniformMatrix);
+      treasureFound=false;
     }
     if(moves.emerge){
-      m4.zRotate(elementsToDraw[0].u_matrix, degToRad(-2), elementsToDraw[0].u_matrix);
-      m4.zRotate(elementsToDraw[1].u_matrix, degToRad(-2), elementsToDraw[1].u_matrix);
+      m4.zRotate(elementsToDraw[0].uniformMatrix, degToRad(-2), elementsToDraw[0].uniformMatrix);
+      m4.zRotate(elementsToDraw[1].uniformMatrix, degToRad(-2), elementsToDraw[1].uniformMatrix);
+      treasureFound=false;
     }
-
-    velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration); //variabile velcoità doi spostamento
+    velocity = lerp(velocity, maxVelocity * moves.target, deltaTime * accelleration); //variabile velocità di spostamento
     let xTrasl = velocity * deltaTime; //quantità di spostamento
 
     let valX = submarine.getX() + xTrasl; //variabile di controllo
     let posTreasure = closedTrasure.getX() - (3 * moves.target);
-//TODO: gestisci anche y o z del tesoro
+    let highFromTreasure = Math.abs(closedTrasure.getY()-submarine.getY());
 
     if(velocity !=0 && ( valX > wall.getX() +( 2 * moves.target))){
-      console.log("subPos.x:"+submarine.getX().toString()+"  xTrasl: "+xTrasl.toString()+"   wallPos.x: "+wall.getX().toString()+"   target: "+ moves.target.toString());
-      moves.stopTarget();
+      moves.target > 0 ? moves.ableBack = false : moves.ableFoward = false;
       //TODO: fai esplodere tutto
-      //TODO: gestisci able back e able foward
-    } else if(velocity != 0 && ( Math.abs(valX) >= Math.abs(posTreasure))){
-      console.log("posTreasure: "+ posTreasure.toString());
-      console.log("subPos.x:"+ valX.toString());
+    } else if(velocity != 0 && ( Math.abs(valX) >= Math.abs(posTreasure)) && highFromTreasure <= 1.5){
       moves.ableFoward = false;
       velocity = 0;
+      treasureFound=true;
     }else{
       moves.ableFoward = true;
-      m4.translate(elementsToDraw[0].u_matrix, xTrasl,0,0, elementsToDraw[0].u_matrix);
-      elementsToDraw[1].u_matrix = adaptPropellersTransl(elementsToDraw[0].u_matrix, elementsToDraw[1].u_matrix);
+      moves.ableBack = true;
+      m4.translate(elementsToDraw[0].uniformMatrix, xTrasl,0,0, elementsToDraw[0].uniformMatrix);
+      elementsToDraw[1].uniformMatrix = adaptPropellersTransl(elementsToDraw[0].uniformMatrix, elementsToDraw[1].uniformMatrix);
     }
 
-
+    //movimenti della bolla
+    if(faceBubble.animateY && faceBubble.getY() < (openTreasure.getY() + 2.5)){
+       bubbleVelocity = lerp(bubbleVelocity, 10, deltaTime);
+       let bubbleTrasl = bubbleVelocity * deltaTime;
+       m4.translate(faceBubble.uniformMatrix, 0, bubbleTrasl, 0, faceBubble.uniformMatrix);
+    }
    
     
 
@@ -280,8 +313,8 @@ async function main() {
 
     /*-- posizione luce del sottomarino -- */
     // definito in base alla posizione della camera
-    var subLightPos = [camera[12], camera[13], camera[14]];
-
+    var subLightPos = [submarine.getX(), submarine.getY(), submarine.getZ()];
+    var subLightDirection = m4.addVectors(subLightPos, [1, -1, 1], null);
     
     //campo della vista nell'asse y in radianti
     const fovy = degToRad(60);
@@ -317,7 +350,7 @@ async function main() {
       //luce sottomarino
       u_lightSubPosition: subLightPos,
       u_lightSubIntensity: 0,
-      u_lightSubDirection: m4.translate(1,-1,1, subLightPos), //capire come modificarlo
+      u_lightSubDirection: subLightDirection, //capire come modificarlo
     };
     gl.useProgram(programInfo.program);
     // calls gl.uniform
@@ -347,13 +380,17 @@ async function main() {
 
 
       // definisco la matrice
-      let m = object.uniforms.u_matrix;
+      let m = object.uniformMatrix;
       // gestisco l'animazione delle eliche
-      if(object.animate){
+      if(object.animateX){
         degree = (degree > 360 ? 0 : (degree + 4 + 3.5 *Math.abs(velocity/maxVelocity)));
         m = m4.xRotate(m, degToRad(degree),m4.copy(m));
       }
-      
+      //gestisco animazione bolla
+      if(object.animateY){
+        degree = (degree > 360 ? 0 : (degree + 0.5));
+        m = m4.yRotate(m, degToRad(degree),m4.copy(m));
+      }
       
 
       // renderizzo passando più array //
